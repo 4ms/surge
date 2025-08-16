@@ -17,11 +17,11 @@ set(SURGE_JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../libs/JUCE" CACHE STRING "Pat
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(cmake/lib.cmake)
 
-if (NOT SURGE_SKIP_JUCE_FOR_RACK)
-  message(STATUS "Using JUCE from ${SURGE_JUCE_PATH}")
-  add_subdirectory(${SURGE_JUCE_PATH} ${CMAKE_BINARY_DIR}/JUCE EXCLUDE_FROM_ALL)
-  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../libs/melatonin_inspector" ${CMAKE_BINARY_DIR}/melatonin_inspector EXCLUDE_FROM_ALL)
-endif()
+# if (NOT SURGE_SKIP_JUCE_FOR_RACK)
+#   message(STATUS "Using JUCE from ${SURGE_JUCE_PATH}")
+#   add_subdirectory(${SURGE_JUCE_PATH} ${CMAKE_BINARY_DIR}/JUCE EXCLUDE_FROM_ALL)
+#   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../libs/melatonin_inspector" ${CMAKE_BINARY_DIR}/melatonin_inspector EXCLUDE_FROM_ALL)
+# endif()
 
 if(${CMAKE_VERSION} VERSION_LESS 3.21)
   message(WARNING "CMake version less than 3.21. Skipping clap builds. Please "
@@ -32,9 +32,9 @@ else()
   set(SURGE_BUILD_CLAP TRUE)
 endif()
 
-if(SURGE_BUILD_CLAP)
-  add_subdirectory(../libs/clap-juce-extensions clap-extensions EXCLUDE_FROM_ALL)
-endif()
+# if(SURGE_BUILD_CLAP)
+#   add_subdirectory(../libs/clap-juce-extensions clap-extensions EXCLUDE_FROM_ALL)
+# endif()
 
 if(SURGE_SKIP_STANDALONE OR SURGE_SKIP_ALSA)
   set(SURGE_USE_ALSA FALSE)
@@ -47,31 +47,31 @@ add_library(simde INTERFACE)
 target_include_directories(simde INTERFACE ${SURGE_SIMDE_PATH})
 add_library(surge::simde ALIAS simde)
 
-add_library(surge-juce INTERFACE)
-target_compile_definitions(surge-juce INTERFACE
-  JUCE_ALLOW_STATIC_NULL_VARIABLES=0
-  JUCE_STRICT_REFCOUNTEDPOINTER=1
+# add_library(surge-juce INTERFACE)
+# target_compile_definitions(surge-juce INTERFACE
+#   JUCE_ALLOW_STATIC_NULL_VARIABLES=0
+#   JUCE_STRICT_REFCOUNTEDPOINTER=1
 
-  JUCE_VST3_CAN_REPLACE_VST2=0
-  JUCE_USE_CURL=0
-  JUCE_WEB_BROWSER=0
-  JUCE_USE_CAMERA=disabled
+#   JUCE_VST3_CAN_REPLACE_VST2=0
+#   JUCE_USE_CURL=0
+#   JUCE_WEB_BROWSER=0
+#   JUCE_USE_CAMERA=disabled
 
-  JUCE_DISPLAY_SPLASH_SCREEN=0
-  JUCE_REPORT_APP_USAGE=0
+#   JUCE_DISPLAY_SPLASH_SCREEN=0
+#   JUCE_REPORT_APP_USAGE=0
 
-  JUCE_MODAL_LOOPS_PERMITTED=0
+#   JUCE_MODAL_LOOPS_PERMITTED=0
 
-  JUCE_COREGRAPHICS_DRAW_ASYNC=1
+#   JUCE_COREGRAPHICS_DRAW_ASYNC=1
 
-  JUCE_ALSA=$<IF:$<BOOL:${SURGE_USE_ALSA}>,1,0>
-  JUCE_JACK=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
+#   JUCE_ALSA=$<IF:$<BOOL:${SURGE_USE_ALSA}>,1,0>
+#   JUCE_JACK=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
 
-  JUCE_WASAPI=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
-  JUCE_DIRECTSOUND=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
+#   JUCE_WASAPI=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
+#   JUCE_DIRECTSOUND=$<IF:$<NOT:$<BOOL:${SURGE_SKIP_STANDALONE}>>,1,0>
 
-  JUCE_CATCH_UNHANDLED_EXCEPTIONS=0
-  )
+#   JUCE_CATCH_UNHANDLED_EXCEPTIONS=0
+#   )
 
 if (NOT SURGE_SKIP_JUCE_FOR_RACK)
   target_link_libraries(surge-juce INTERFACE melatonin_inspector)

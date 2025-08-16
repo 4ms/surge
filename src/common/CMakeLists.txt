@@ -57,7 +57,7 @@ if(NOT SURGE_SKIP_JUCE_FOR_RACK)
   )
   target_compile_definitions(surge-common-binary PUBLIC HAS_JUCE=1 SKIP_JUCE=0)
 
-else()
+elseif(NOT SURGE_SKIP_JUCE_DSP)
   # So what the heck is this? Well a few effects use juce_dsp so this
   # is code which skips the entire juce build infrastructure but buids the
   # source of juce_dsp, juce_audio_basic and juce_cde as a lib we can link
@@ -375,10 +375,6 @@ target_link_libraries(${PROJECT_NAME}
   surge::eurorack
 
   sst-cpputils
-  sst-plugininfra
-  sst-plugininfra::filesystem
-  sst-plugininfra::tinyxml
-  sst-plugininfra::strnatcmp
   sst-filters
   sst-filters-extras
   sst-waveshapers
@@ -395,8 +391,21 @@ target_link_libraries(${PROJECT_NAME}
   surge-juce
   taocpp::pegtl
   PRIVATE
-  juce::juce_dsp
 )
+
+if (NOT SURGE_SKIP_JUCE_DSP)
+  target_link_libraries(${PROJECT_NAME} PUBLIC juce::juce_dsp)
+endif()
+
+if (NOT SURGE_NO_OS)
+  target_link_libraries(${PROJECT_NAME} 
+    PUBLIC
+    sst-plugininfra
+    sst-plugininfra::filesystem
+    sst-plugininfra::tinyxml
+    sst-plugininfra::strnatcmp
+  )
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   JUCE_STANDALONE_APPLICATION=0
