@@ -311,8 +311,9 @@ void Wavetable::MipMapWT()
                             this->TableF32WeakPointers[l][s][i] +=
                                 hrfilter[a] * this->TableF32WeakPointers[l - 1][srctable][srcindex];
                     }
-                    this->TableI16WeakPointers[l][s][i + FIRoffsetI16] =
-                        0; // not supported in int16 atm
+                    const float scale = (flags & wtf_int16_is_16) ? 32768.f : 16384.f;
+                    this->TableI16WeakPointers[l][s][i + FIRoffsetI16] = static_cast<short>(
+                        std::clamp(this->TableF32WeakPointers[l][s][i] * scale, -32768.f, 32767.f));
                 }
             }
             else
