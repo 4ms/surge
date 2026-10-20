@@ -3,7 +3,7 @@
 	url = https://github.com/free-audio/clap-juce-extensions
 [submodule "libs/eurorack/eurorack"]
 	path = libs/eurorack/eurorack
-	url = https://github.com/surge-synthesizer/eurorack.git
+	url = https://github.com/4ms/pichenettes-eurorack.git
 [submodule "libs/fmt"]
 	path = libs/fmt
 	url = https://github.com/fmtlib/fmt.git
@@ -37,16 +37,16 @@
 	url = https://github.com/pybind/pybind11
 [submodule "libs/sst/sst-basic-blocks"]
 	path = libs/sst/sst-basic-blocks
-	url = https://github.com/surge-synthesizer/sst-basic-blocks.git
+	url = https://github.com/4ms/sst-basic-blocks.git
 [submodule "libs/sst/sst-cpputils"]
 	path = libs/sst/sst-cpputils
 	url = https://github.com/surge-synthesizer/sst-cpputils
 [submodule "libs/sst/sst-effects"]
 	path = libs/sst/sst-effects
-	url = https://github.com/surge-synthesizer/sst-effects
+	url = https://github.com/4ms/sst-effects.git
 [submodule "libs/sst/sst-filters"]
 	path = libs/sst/sst-filters
-	url = https://github.com/surge-synthesizer/sst-filters
+	url = https://github.com/4ms/sst-filters.git
 [submodule "libs/sst/sst-plugininfra"]
 	path = libs/sst/sst-plugininfra
 	url = https://github.com/surge-synthesizer/sst-plugininfra
