@@ -24,6 +24,7 @@
 
 #include "AliasOscillator.h"
 #include "SineOscillator.h"
+#include <cassert>
 
 // This linear representation is required for VST3 automation and the like and needs to
 // match the param ID the UI is driven by the remapper code in init_ctrltypes
@@ -158,10 +159,11 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
         wavetable = (const uint8_t *)storage->getPatch().stepsequences;
         break;
     case AliasOscillator::ao_waves::aow_audiobuffer:
-        // TODO: correct size check here.
-        // should really check BLOCK_SIZE_OS etc, make sure everything is as expected
-        static_assert(sizeof(storage->audio_in) >= 2 * BLOCK_SIZE_OS * sizeof(float),
-                      "Memory region not large enough to be indexed by Alias");
+    {
+        // dynamic_wavetable holds 4 bytes per stereo frame, so use at most 64 frames. Sizing
+        // from the channel buffer keeps BLOCK_SIZE_OS > 64 from overflowing the table.
+        constexpr int audioFrames =
+            std::min<int>(64, sizeof(storage->audio_in[0]) / sizeof(storage->audio_in[0][0]));
 
         wavetable_mode = true;
         wavetable = (const uint8_t *)dynamic_wavetable;
@@ -170,10 +172,14 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
         // to additive mode after using this mode.
         dynamic_wavetable_sleep = 0;
 
-        for (int qs = 0; qs < BLOCK_SIZE_OS; ++qs)
+        for (int qs = 0; qs < audioFrames; ++qs)
         {
-            auto llong = (uint32_t)(((double)storage->audio_in[0][qs]) * (double)0xFFFFFFFF);
-            auto rlong = (uint32_t)(((double)storage->audio_in[1][qs]) * (double)0xFFFFFFFF);
+            // Negative samples: convert through int64_t; a negative double -> uint32_t is UB
+            // (ARM saturates to 0, x86 wraps).
+            auto llong =
+                (uint32_t)(int64_t)(((double)storage->audio_in[0][qs]) * (double)0xFFFFFFFF);
+            auto rlong =
+                (uint32_t)(int64_t)(((double)storage->audio_in[1][qs]) * (double)0xFFFFFFFF);
 
             llong = (llong >> 24) & 0xFF;
             rlong = (rlong >> 24) & 0xFF;
@@ -184,6 +190,7 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
             dynamic_wavetable[4 * qs + 3] = rlong;
         }
         break;
+    }
     case AliasOscillator::ao_waves::aow_additive:
     {
         wavetable_mode = true;
@@ -204,7 +211,7 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
         {
             norm += oscdata->extraConfig.data[h] * oscdata->extraConfig.data[h];
         }
-        norm = 127.f / sqrtf(norm);
+        norm = norm > 0.f ? 127.f / sqrtf(norm) : 0.f;
 
         // convert [-1, 1] floats into 8-bit ints
         int8_t amps[n_additive_partials];
@@ -262,9 +269,9 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
 
     const float wrap = 1.f + (clamp01(localcopy[oscdata->p[ao_wrap].param_id_in_scene].f) * 15.f);
 
-    const uint32_t mask =
-        localClamp((uint32_t)(float)(bit_mask * localcopy[oscdata->p[ao_mask].param_id_in_scene].f),
-                   0U, (uint32_t)bit_mask);
+    const uint32_t mask = localClamp<uint32_t>(
+        (uint32_t)(float)(bit_mask * localcopy[oscdata->p[ao_mask].param_id_in_scene].f), 0U,
+        (uint32_t)bit_mask);
 
     const bool ramp_unmasked_after_threshold = (bool)oscdata->p[ao_mask].deform_type;
 
@@ -287,10 +294,11 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
     for (int u = 0; u < n_unison; ++u)
     {
         const float lfodrift = drift * driftLFO[u].next();
-        phase_increments[u] =
-            pitch_to_dphase_with_absolute_offset(pitch + lfodrift + ud * unisonOffsets[u],
-                                                 absOff * unisonOffsets[u]) *
-            two32;
+        // dphase >= 1 (very high pitch) must wrap, not overflow uint32_t
+        phase_increments[u] = (uint32_t)(int64_t)(pitch_to_dphase_with_absolute_offset(
+                                                      pitch + lfodrift + ud * unisonOffsets[u],
+                                                      absOff * unisonOffsets[u]) *
+                                                  two32);
     }
 
     for (int i = 0; i < BLOCK_SIZE_OS; ++i)
@@ -311,7 +319,7 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
             if (wavetype == aow_pulse)
             { // but for pulse...
                 // fake hardsync
-                _phase = (uint32_t)((float)phase[u] * wrap);
+                _phase = (uint32_t)(uint64_t)((float)phase[u] * wrap); // up to 16 * 2^32
             }
             const uint8_t upper = _phase >> 24; // upper 8 bits
             const uint8_t masked = upper ^ mask;
@@ -342,14 +350,14 @@ void AliasOscillator::process_block_internal(const float pitch, const float drif
                 result = urng8[u].stepTo((upper & 0xFF), threshold | 8U);
                 // OK so we want to wrap towards 255/0 so
                 int32_t shapes = result - 0x7F;
-                shapes = localClamp((int32_t)(shapes * wrap), -0x7F, 0x7F - 1);
+                shapes = localClamp<int32_t>((int32_t)(shapes * wrap), -0x7F, 0x7F - 1);
                 result = (uint8_t)(shapes + 0x7F);
             }
 
             if (wavetype != aow_noise && wavetype != aow_pulse)
             {
                 // wraparound. scales the result by a float, then casts back down to a byte
-                result = (uint8_t)((float)result * wrap);
+                result = (uint8_t)(uint32_t)((float)result * wrap);
             }
 
             // default to this
@@ -516,10 +524,7 @@ void AliasOscillator::init_ctrltypes()
                 inverseMapping[e.first] = c++;
             }
 
-            if (mapping.size() != ao_n_waves)
-            {
-                std::cout << "BAD MAPPING TYPES" << std::endl;
-            }
+            assert(mapping.size() == ao_n_waves);
         }
 
         int remapStreamedIndexToDisplayIndex(int i) const override
