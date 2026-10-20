@@ -126,7 +126,7 @@ void StringOscillator::init(float pitch, bool is_display, bool nzi)
             delayLine[1] = storage->memoryPools->stringDelayLines.getItem(storage->sinctable);
     }
 
-    memset((void *)dustBuffer, 0, 2 * (BLOCK_SIZE_OS) * sizeof(float));
+    memset((void *)dustBuffer, 0, sizeof(dustBuffer));
 
     id_exciterlvl = oscdata->p[str_exciter_level].param_id_in_scene;
     id_str1decay = oscdata->p[str_str1_decay].param_id_in_scene;
@@ -170,8 +170,11 @@ void StringOscillator::init(float pitch, bool is_display, bool nzi)
                                            storage->note_to_pitch_inv(pitch2_t));
     }
 
-    pitchmult_inv = std::min(pitchmult_inv, (delayLine[0]->comb_size - 100) * 1.0);
-    pitchmult2_inv = std::min(pitchmult2_inv, (delayLine[0]->comb_size - 100) * 1.0);
+    // The read position is tap * oversample level, so bound the tap by comb_size / OS
+    pitchmult_inv =
+        std::min(pitchmult_inv, (delayLine[0]->comb_size - 100) / double(getOversampleLevel()));
+    pitchmult2_inv =
+        std::min(pitchmult2_inv, (delayLine[0]->comb_size - 100) / double(getOversampleLevel()));
 
     noiseLp.coeff_LP2B(noiseLp.calc_omega(0) * OSC_OVERSAMPLING, 0.9);
     for (int i = 0; i < 3; ++i)
@@ -585,8 +588,11 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
     dp1 /= OS;
     dp2 /= OS;
 
-    pitchmult_inv = std::min(pitchmult_inv, (delayLine[0]->comb_size - 100) * 1.0);
-    pitchmult2_inv = std::min(pitchmult2_inv, (delayLine[0]->comb_size - 100) * 1.0);
+    // The read position is tap * oversample level, so bound the tap by comb_size / OS
+    pitchmult_inv =
+        std::min(pitchmult_inv, (delayLine[0]->comb_size - 100) / double(getOversampleLevel()));
+    pitchmult2_inv =
+        std::min(pitchmult2_inv, (delayLine[0]->comb_size - 100) / double(getOversampleLevel()));
 
     tap[0].newValue(pitchmult_inv);
     tap[1].newValue(pitchmult2_inv);
@@ -676,7 +682,8 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
     float *useOutL, *useOutR;
 
-    float osOutL[BLOCK_SIZE_OS * max_oversample], osOutR[BLOCK_SIZE_OS * max_oversample];
+    float osOutL alignas(16)[BLOCK_SIZE_OS * max_oversample],
+        osOutR alignas(16)[BLOCK_SIZE_OS * max_oversample];
 
     if (OS == 1)
     {
@@ -740,7 +747,7 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
                 val[t] += examp.v * rn;
                 *phs += dp;
-                *phs -= (*phs > 1);
+                *phs -= (int)*phs; // dp may exceed 1 at low sample rates
             }
             break;
             case constant_tri:
@@ -749,7 +756,7 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
                 val[t] += examp.v * rn;
                 *phs += dp;
-                *phs -= (*phs > 1);
+                *phs -= (int)*phs; // dp may exceed 1 at low sample rates
             }
             break;
             case constant_sweep:
@@ -763,7 +770,7 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
                 val[t] += examp.v * 0.707 * sv;
                 *phs += dp;
-                *phs -= (*phs > 1);
+                *phs -= (int)*phs; // dp may exceed 1 at low sample rates
             }
             break;
             case constant_sine:
@@ -772,7 +779,7 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
                 val[t] += examp.v * 0.707 * sv;
                 *phs += dp;
-                *phs -= (*phs > 1);
+                *phs -= (int)*phs; // dp may exceed 1 at low sample rates
             }
             break;
             case constant_square:
@@ -781,7 +788,7 @@ void StringOscillator::process_block_internal(float pitch, float drift, bool ste
 
                 val[t] += examp.v * rn;
                 *phs += dp;
-                *phs -= (*phs > 1);
+                *phs -= (int)*phs; // dp may exceed 1 at low sample rates
             }
             break;
             case constant_audioin:
