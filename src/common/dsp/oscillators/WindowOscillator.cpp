@@ -24,20 +24,19 @@
 #include "DSPUtils.h"
 
 #include <cstdint>
-#include "DebugHelpers.h"
 
-#ifdef _WIN32
-#include <intrin.h>
-#else
 namespace
 {
-inline bool _BitScanReverse(unsigned long *result, unsigned long bits)
+bool _BitScanReverse(unsigned long *result, unsigned long bits)
 {
-    *result = __builtin_ctz(bits);
+    if (!bits)
+        return false;
+    *result = 0;
+    while (bits >>= 1)
+        ++*result;
     return true;
 }
-} // anonymous namespace
-#endif
+} // namespace
 int Float2Int(float x)
 {
 #ifdef ARM_NEON
