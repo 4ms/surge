@@ -59,7 +59,7 @@ default_construct(std::unique_ptr<T> &ptr)
 class WDF
 {
   public:
-    WDF(std::string type) : type(type) {}
+    WDF(const char *type) : type(type) {}
     virtual ~WDF() {}
 
     /** Sub-classes override this function to recompute
@@ -102,14 +102,14 @@ class WDF
     __m128 b = vZero; // reflected wave
 
   private:
-    const std::string type;
+    const char *const type;
 };
 
 /** WDF node base class */
 class WDFNode : public WDF
 {
   public:
-    WDFNode(std::string type) : WDF(type) {}
+    WDFNode(const char *type) : WDF(type) {}
     virtual ~WDFNode() {}
 
     /** Connects this WDF node to an upstream node in the WDF tree. */

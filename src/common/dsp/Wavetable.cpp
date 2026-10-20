@@ -28,10 +28,6 @@
 #include "sst/basic-blocks/mechanics/endian-ops.h"
 namespace mech = sst::basic_blocks::mechanics;
 
-#if WINDOWS
-#include <intrin.h>
-#endif
-
 using namespace std;
 
 const float hrfilter[63] = {
@@ -60,14 +56,6 @@ const int HRFilterI16[64] = {
     -66, -240, 95,    143,   -92,  -74,   72,    31,   -48,   -8,    33,   1};
 
 int min_F32_tables = 3;
-
-#if MAC || LINUX
-bool _BitScanReverse(unsigned int *result, unsigned int bits)
-{
-    *result = __builtin_ctz(bits);
-    return true;
-}
-#endif
 
 //! Calculate the worst-case scenario of the needed samples for a specific wavetable and see if it
 //! fits
@@ -99,11 +87,12 @@ int GetWTIndex(int WaveIdx, int WaveSize, int NumWaves, int MipMap, int Padding 
 
 Wavetable::Wavetable()
 {
-    dataSizes = 35000;
-    TableF32Data = (float *)malloc(dataSizes * sizeof(float));
-    TableI16Data = (short *)malloc(dataSizes * sizeof(short));
-    memset(TableF32Data, 0, dataSizes * sizeof(float));
-    memset(TableI16Data, 0, dataSizes * sizeof(short));
+    dataSizes = 0;
+    TableF32Data = nullptr;
+    TableI16Data = nullptr;
+    size = size_po2 = flags = 0;
+    n_tables = 0;
+    dt = 0;
     memset(TableF32WeakPointers, 0, sizeof(TableF32WeakPointers));
     memset(TableI16WeakPointers, 0, sizeof(TableI16WeakPointers));
     current_id = -1;
@@ -125,8 +114,10 @@ void Wavetable::allocPointers(size_t newSize)
     dataSizes = newSize;
     TableF32Data = (float *)malloc(dataSizes * sizeof(float));
     TableI16Data = (short *)malloc(dataSizes * sizeof(short));
-    memset(TableF32Data, 0, dataSizes * sizeof(float));
-    memset(TableI16Data, 0, dataSizes * sizeof(short));
+    if (TableF32Data)
+        memset(TableF32Data, 0, dataSizes * sizeof(float));
+    if (TableI16Data)
+        memset(TableI16Data, 0, dataSizes * sizeof(short));
 }
 
 void Wavetable::Copy(Wavetable *wt)
@@ -189,6 +180,8 @@ bool Wavetable::BuildWT(void *wdata, wt_header &wh, bool AppendSilence)
         allocPointers(req_size);
     }
 
+    if (!TableF32Data || !TableI16Data)
+        return false;
     int wdata_tables = n_tables;
 
     if (AppendSilence)
@@ -196,15 +189,9 @@ bool Wavetable::BuildWT(void *wdata, wt_header &wh, bool AppendSilence)
         n_tables += 3; // this "3" should match the "3" in RequiredWTSize
     }
 
-#if WINDOWS
-    unsigned long MSBpos;
-    _BitScanReverse(&MSBpos, size);
-#else
-    unsigned int MSBpos;
-    _BitScanReverse(&MSBpos, size);
-#endif
-
-    size_po2 = MSBpos;
+    size_po2 = 0;
+    for (auto n = size; n > 1; n >>= 1)
+        ++size_po2;
 
     dt = 1.0f / size;
 
@@ -339,10 +326,10 @@ void Wavetable::MipMapWT()
                             hrfilter[a] * this->TableF32WeakPointers[l - 1][s][(
                                               ((i << 1) + a - filter_id_of) & (psize - 1))];
                     }
-                    int ival = 0;
+                    int64_t ival = 0;
                     for (int a = 0; a < filter_size; a++)
                     {
-                        ival += HRFilterI16[a] *
+                        ival += int64_t(HRFilterI16[a]) *
                                 this->TableI16WeakPointers[l - 1][s]
                                                           [(((i << 1) + a - 31) & (psize - 1)) +
                                                            FIRoffsetI16];

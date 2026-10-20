@@ -22,8 +22,10 @@
 #ifndef SURGE_SRC_COMMON_DSP_EFFECTS_CHOWDSP_EXCITER_LEVELDETECTOR_H
 #define SURGE_SRC_COMMON_DSP_EFFECTS_CHOWDSP_EXCITER_LEVELDETECTOR_H
 
+#include <algorithm>
 #include <cmath>
-#include "DSPUtils.h"
+#include <limits>
+#include <cstddef>
 
 namespace chowdsp
 {
@@ -56,7 +58,10 @@ class LevelDetector
     {
         constexpr float alpha = 0.05f / 0.0259f;
         constexpr float beta = 0.2f;
-        return 25.0f * beta * (std::exp(alpha * x) - 1.0f);
+        return 25.0f * beta *
+               (std::exp(std::min(alpha * x, std::log(std::numeric_limits<float>::max() /
+                                                      (25.0f * beta * 1024.0f)))) -
+                1.0f);
     }
 
     float tau_attack = 0.0f;

@@ -30,7 +30,7 @@
 #ifndef SURGE_SRC_COMMON_DSP_UTILITIES_SSECOMPLEX_H
 #define SURGE_SRC_COMMON_DSP_UTILITIES_SSECOMPLEX_H
 
-#include "globals.h"
+#include <sst/utilities/globals.h>
 #include <complex>
 #include <functional>
 #include "sst/basic-blocks/dsp/FastMath.h"
