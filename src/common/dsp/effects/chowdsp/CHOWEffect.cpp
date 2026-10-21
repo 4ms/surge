@@ -83,6 +83,13 @@ void CHOWEffect::process(float *dataL, float *dataR)
 
     mix.set_target_smoothed(clamp01(*pd_float[chow_mix]));
     mix.fade_2_blocks_inplace(L, dataL, R, dataR, BLOCK_SIZE_QUAD);
+
+    // fade_2_blocks_inplace leaves the blend in L and R
+    for (int i = 0; i < BLOCK_SIZE; i++)
+    {
+        dataL[i] = L[i];
+        dataR[i] = R[i];
+    }
 }
 
 void CHOWEffect::set_params()

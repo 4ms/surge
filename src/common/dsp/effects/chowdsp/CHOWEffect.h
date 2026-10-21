@@ -65,7 +65,7 @@ class CHOWEffect : public Effect
     virtual const char *group_label(int id) override;
     virtual int group_label_ypos(int id) override;
 
-  private:
+  protected:
     void set_params();
     void process_block(float *dataL, float *dataR);
     void process_block_os(float *dataL, float *dataR);

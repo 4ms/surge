@@ -65,7 +65,7 @@ class ExciterEffect : public Effect
     virtual const char *group_label(int id) override;
     virtual int group_label_ypos(int id) override;
 
-  private:
+  protected:
     void set_params();
 
     inline void process_sample(float &l, float &r)
