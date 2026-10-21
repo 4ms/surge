@@ -25,6 +25,7 @@
 
 #include "ChorusEffect.h"
 #include <algorithm>
+#include <cmath>
 
 #include "globals.h"
 #include "sst/basic-blocks/mechanics/block-ops.h"
@@ -88,8 +89,9 @@ template <int v> void ChorusEffect<v>::setvars(bool init)
         {
             lfophase[i] += rate;
 
+            // the rate can exceed one cycle per block under extreme modulation
             if (lfophase[i] > 1)
-                lfophase[i] -= 1;
+                lfophase[i] = std::fmod(lfophase[i], 1.0);
 
             float lfoout = (2.f * fabs(2.f * lfophase[i] - 1.f) - 1.f) * *pd_float[ch_depth];
             time[i].newValue(storage->samplerate * tm * (1 + lfoout));
@@ -173,10 +175,11 @@ template <int v> void ChorusEffect<v>::process(float *dataL, float *dataR)
         mech::copy_from_to<BLOCK_SIZE>(fbblock, &buffer[wpos]);
     }
 
-    if (wpos == 0)
-        for (int k = 0; k < FIRipol_N; k++)
-            buffer[k + max_delay_length] =
-                buffer[k]; // copy buffer so FIR-core doesn't have to wrap
+    // copy buffer so FIR-core doesn't have to wrap; with BLOCK_SIZE < FIRipol_N the padding
+    // spans more than one block write
+    if (wpos < FIRipol_N)
+        for (int k = 0; k < std::min(BLOCK_SIZE, FIRipol_N - wpos); k++)
+            buffer[wpos + k + max_delay_length] = buffer[wpos + k];
 
     // scale width
     applyWidth(tbufferL, tbufferR, width);
