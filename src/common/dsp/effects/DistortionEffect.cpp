@@ -123,7 +123,7 @@ void DistortionEffect::process(float *dataL, float *dataR)
 
     if (useSSEShaper)
     {
-        dD = (dE - dS) / (BLOCK_SIZE * dist_OS_bits);
+        dD = (dE - dS) / (BLOCK_SIZE * distortion_OS);
     }
 
     for (int k = 0; k < BLOCK_SIZE; k++)
