@@ -23,13 +23,19 @@
 #ifndef SURGE_SRC_COMMON_DSP_EFFECTS_CHOWDSP_SPRING_REVERB_SPRINGREVERBPROC_H
 #define SURGE_SRC_COMMON_DSP_EFFECTS_CHOWDSP_SPRING_REVERB_SPRINGREVERBPROC_H
 
-#include <functional>
+#include <random>
 
 #include "../shared/SmoothedValue.h"
 #include "../shared/StateVariableFilter.h"
 
 #include "ReflectionNetwork.h"
 #include "SchroederAllpass.h"
+
+// Main delay capacity: (1000 + 0.099 fs) samples plus 7% chaos at 768 kHz. Hosts with a lower
+// sample rate ceiling can reduce it; longer delays would be clamped.
+#ifndef SURGE_SPRING_DELAY_SIZE
+#define SURGE_SPRING_DELAY_SIZE (1 << 17)
+#endif
 
 namespace chowdsp
 {
@@ -53,8 +59,11 @@ class SpringReverbProc
     void setParams(const Params &params, int numSamples);
     void processBlock(float *left, float *right, const int numSamples);
 
+    /** Restart the chaos/shake random sequence from seed (e.g. before prepare()). */
+    void reseed(unsigned int seed);
+
   private:
-    DelayLine<float, DelayLineInterpolationTypes::Lagrange3rd> delay{1 << 18};
+    DelayLine<float, DelayLineInterpolationTypes::Lagrange3rd> delay{SURGE_SPRING_DELAY_SIZE};
     float feedbackGain;
 
     StateVariableFilter<float> dcBlocker;
@@ -64,8 +73,15 @@ class SpringReverbProc
     using APFCascade = std::array<SchroederAllpass<VecType, 2>, allpassStages>;
     APFCascade vecAPFs;
 
-    std::function<float()> urng01; // A uniform 0,1 RNG
+    std::minstd_rand gen01;
+    std::uniform_real_distribution<float> distro01{0.0f, 1.0f};
+    float urng01() { return distro01(gen01); } // A uniform 0,1 RNG
     SmoothedValue<float, ValueSmoothingTypes::Linear> chaosSmooth;
+
+    // setParams only recomputes coefficients whose inputs changed since the last block
+    bool coefficientsValid = false;
+    Params previousParams;
+    float cachedT60 = 0.0f, cachedBaseDelay = 0.0f;
 
     // SIMD register for parallel allpass filter
     // format:

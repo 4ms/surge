@@ -77,7 +77,7 @@ class SpringReverbEffect : public Effect
     const char *group_label(int id) override;
     int group_label_ypos(int id) override;
 
-  private:
+  protected:
     SpringReverbProc proc;
 
     lipol_ps_blocksz mix alignas(16), makeup alignas(16);

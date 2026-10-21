@@ -32,6 +32,12 @@
 namespace chowdsp
 {
 
+// Delay capacity of each allpass stage: 3.35 ms at 768 kHz. Hosts with a lower sample rate
+// ceiling can reduce it; longer delays would be clamped.
+#ifndef SURGE_SPRING_ALLPASS_DELAY_SIZE
+#define SURGE_SPRING_ALLPASS_DELAY_SIZE (1 << 12)
+#endif
+
 template <typename T = float, int order = 1> class SchroederAllpass
 {
   public:
@@ -65,7 +71,7 @@ template <typename T = float, int order = 1> class SchroederAllpass
     }
 
   private:
-    DelayLine<T, DelayLineInterpolationTypes::Thiran> delay{1 << 18};
+    DelayLine<T, DelayLineInterpolationTypes::Thiran> delay{SURGE_SPRING_ALLPASS_DELAY_SIZE};
     SchroederAllpass<T, order - 1> nestedAllpass;
     T g;
 };
@@ -94,7 +100,7 @@ template <typename T> class SchroederAllpass<T, 1>
     }
 
   private:
-    DelayLine<T, DelayLineInterpolationTypes::Thiran> delay{1 << 18};
+    DelayLine<T, DelayLineInterpolationTypes::Thiran> delay{SURGE_SPRING_ALLPASS_DELAY_SIZE};
     T g;
 };
 } // namespace chowdsp
