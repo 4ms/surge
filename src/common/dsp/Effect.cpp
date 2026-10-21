@@ -19,6 +19,9 @@
  * All source for Surge XT is available at
  * https://github.com/surge-synthesizer/surge
  */
+// Embedded hosts that instantiate effects directly can build just the Effect base
+// class by defining SURGE_EFFECT_BASE_ONLY, without linking every effect.
+#ifndef SURGE_EFFECT_BASE_ONLY
 #include "BBDEnsembleEffect.h"
 #include "BonsaiEffect.h"
 #include "ChorusEffectImpl.h"
@@ -49,8 +52,13 @@
 #include "chowdsp/TapeEffect.h"
 #include "DebugHelpers.h"
 #include "AudioInputEffect.h"
+#else
+#include "Effect.h"
+#endif
 
 using namespace std;
+
+#ifndef SURGE_EFFECT_BASE_ONLY
 
 Effect *spawn_effect(int id, SurgeStorage *storage, FxStorage *fxdata, pdata *pd)
 {
@@ -120,6 +128,7 @@ Effect *spawn_effect(int id, SurgeStorage *storage, FxStorage *fxdata, pdata *pd
         return 0;
     };
 }
+#endif
 
 Effect::Effect(SurgeStorage *storage, FxStorage *fxdata, pdata *pd)
 {
