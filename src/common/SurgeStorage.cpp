@@ -336,6 +336,10 @@ SurgeStorage::SurgeStorage(const SurgeStorage::SurgeStorageConfig &config) : oth
                 "Unable to determine %DOCUMENTS%");
         }
     }
+#else
+    // Not a desktop platform: there are no OS data or user paths, so only use a supplied one
+    if (hasSuppliedDataPath)
+        datapath = suppliedDataPath;
 #endif
 
     try
