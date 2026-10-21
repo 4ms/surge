@@ -21,6 +21,7 @@
  */
 #include "LFOModulationSource.h"
 #include <cmath>
+#include <iostream>
 #include "DebugHelpers.h"
 #include "MSEGModulationHelper.h"
 

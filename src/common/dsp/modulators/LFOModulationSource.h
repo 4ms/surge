@@ -111,7 +111,7 @@ class LFOModulationSource : public ModulationSource
     FormulaModulatorStorage *fs;
 
   private:
-    float output_multi[Surge::Formula::max_formula_outputs];
+    float output_multi[Surge::Formula::max_formula_outputs]{};
 
   public:
     Surge::MSEG::EvaluatorState msegstate;
@@ -130,11 +130,11 @@ class LFOModulationSource : public ModulationSource
     void initPhaseFromStartPhase();
     void msegEnvelopePhaseAdjustment();
 
-    float phase, target, noise, noised1, env_phase, priorPhase;
-    int unwrappedphase_intpart;
+    float phase{0.f}, target{0.f}, noise{0.f}, noised1{0.f}, env_phase{0.f}, priorPhase{0.f};
+    int unwrappedphase_intpart{0};
     int priorStep = -1;
     float ratemult;
-    float env_releasestart;
+    float env_releasestart{0.f};
     float iout;
     float wf_history[4];
     bool is_display;
