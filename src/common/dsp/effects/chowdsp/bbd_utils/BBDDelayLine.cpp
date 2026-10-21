@@ -20,6 +20,7 @@
  * https://github.com/surge-synthesizer/surge
  */
 #include "BBDDelayLine.h"
+#include "ReuseAllocation.h"
 
 template <size_t STAGES> void BBDDelayLine<STAGES>::prepare(double sampleRate)
 {
@@ -28,13 +29,15 @@ template <size_t STAGES> void BBDDelayLine<STAGES>::prepare(double sampleRate)
     Ts = 1.0f / FS;
 
     bufferPtr = 0;
+    yBBD_old = 0.0f;
+    Ts_bbd = Ts;
     std::fill(buffer.begin(), buffer.end(), 0.0f);
 
     tn = 0.0f;
     evenOn = true;
 
-    inputFilter = std::make_unique<InputFilterBank>(Ts);
-    outputFilter = std::make_unique<OutputFilterBank>(Ts);
+    reuseOrMake(inputFilter, Ts);
+    reuseOrMake(outputFilter, Ts);
     H0 = outputFilter->calcH0();
 }
 

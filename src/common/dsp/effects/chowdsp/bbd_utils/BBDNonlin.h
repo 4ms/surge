@@ -25,7 +25,10 @@
 // #include "../shared/wdf.h"
 #include "../shared/wdf_sse.h"
 #include "../shared/omega.h"
+#include <algorithm>
+#include <cmath>
 #include <memory>
+#include "ReuseAllocation.h"
 
 // 2.7% w/ spikes up to 3.2%
 // After SSE: 1.8% +/- 0.2%
@@ -125,7 +128,9 @@ struct NonlinLUT
 
     inline float operator()(float x) const noexcept
     {
-        auto idx = size_t((x - offset) * scale);
+        if (!std::isfinite(x))
+            return 0;
+        auto idx = size_t(std::clamp((x - offset) * scale, 0.f, float(table.size() - 1)));
         return sgn(x) * table[idx];
     }
 
@@ -134,7 +139,7 @@ struct NonlinLUT
     float offset, scale;
 };
 
-static NonlinLUT bbdNonlinLUT{-5.0, 5.0, 1 << 16};
+inline NonlinLUT bbdNonlinLUT{-5.0, 5.0, 1 << 16};
 
 class BBDNonlin
 {
@@ -146,24 +151,24 @@ class BBDNonlin
         using namespace chowdsp::WDF_SSE;
         constexpr float alpha = 0.4;
 
-        S2.port1 = std::make_unique<Resistor>(2.7e3f); // Rgk
+        reuseOrMake(S2.port1, 2.7e3f); // Rgk
 
         auto &P3 = S2.port2;
         auto &I1 = P3->port1;
-        I1->port1 = std::make_unique<ResistiveVoltageSource>(); // Vin
+        reuseOrMake(I1->port1); // Vin
         Vin = I1->port1.get();
 
         auto &P2 = P3->port2;
-        P2->port1 = std::make_unique<Capacitor>(1.6e-12f, sampleRate, alpha); // Cgk
+        reuseOrMake(P2->port1, 1.6e-12f, sampleRate, alpha); // Cgk
 
         auto &S1 = P2->port2;
-        S1->port1 = std::make_unique<Capacitor>(1.7e-12f, sampleRate, alpha); // Cgp
+        reuseOrMake(S1->port1, 1.7e-12f, sampleRate, alpha); // Cgp
 
         auto &P1 = S1->port2;
-        P1->port1 = std::make_unique<Capacitor>(0.33e-12f, sampleRate, alpha); // Cpk
+        reuseOrMake(P1->port1, 0.33e-12f, sampleRate, alpha); // Cpk
         Cpk = P1->port1.get();
 
-        P1->port2 = std::make_unique<ResistiveCurrentSource>(); // Is
+        reuseOrMake(P1->port2); // Is
         Is = P1->port2.get();
 
         P1->initialise();

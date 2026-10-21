@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <memory>
 #include <numeric>
 #include <vector>
@@ -42,6 +43,12 @@ template <size_t STAGES> class BBDDelayLine
     {
         const auto clock_rate_hz = (2.0f * (float)STAGES) / delaySec;
         Ts_bbd = 1.0f / clock_rate_hz;
+        // A nonpositive or NaN period (e.g. from modulated depth) would make process()
+        // loop forever: use one sample instead, and bound extreme tick density.
+        if (!std::isfinite(Ts_bbd) || Ts_bbd <= 0)
+            Ts_bbd = Ts;
+        else
+            Ts_bbd = std::max(Ts_bbd, Ts / 4096.f);
 
         const auto doubleTs = 2 * Ts_bbd;
         inputFilter->set_delta(doubleTs);

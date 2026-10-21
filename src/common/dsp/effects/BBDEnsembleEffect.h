@@ -87,7 +87,7 @@ class BBDEnsembleEffect : public Effect
     virtual void handleStreamingMismatches(int streamingRevision,
                                            int currentSynthStreamingRevision) override;
 
-  private:
+  protected:
     float getFeedbackGain(bool bbd) const noexcept;
     void process_sinc_delays(float *dataL, float *dataR, float delayCenterMs, float delayScale);
 
