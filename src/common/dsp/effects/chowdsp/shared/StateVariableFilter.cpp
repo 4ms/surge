@@ -20,6 +20,7 @@
  * https://github.com/surge-synthesizer/surge
  */
 #include "StateVariableFilter.h"
+#include <algorithm>
 
 namespace chowdsp
 {
@@ -67,7 +68,10 @@ template <typename SampleType> void StateVariableFilter<SampleType>::reset(Sampl
 //==============================================================================
 template <typename SampleType> void StateVariableFilter<SampleType>::update()
 {
-    g = static_cast<NumericType>(std::tan(M_PI * cutoffFrequency / sampleRate));
+    // Past Nyquist tan() wraps around and the filter becomes unstable, e.g. the Spring
+    // Reverb's 18 kHz damping at sample rates below 36.7 kHz.
+    g = static_cast<NumericType>(
+        std::tan(M_PI * std::min<double>(cutoffFrequency, .49 * sampleRate) / sampleRate));
     R2 = static_cast<NumericType>((NumericType)1.0 / resonance);
     h = static_cast<NumericType>((NumericType)1.0 / ((NumericType)1.0 + R2 * g + g * g));
 
