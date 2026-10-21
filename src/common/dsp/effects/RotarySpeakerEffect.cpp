@@ -303,7 +303,7 @@ void RotarySpeakerEffect::process(float *dataL, float *dataR)
             {
                 auto inp = _mm_set1_ps(0.5 * (dataL[k] + dataR[k]));
                 auto wsres = wsop(&wsState, inp, _mm_set1_ps(drive_factor));
-                float r[4];
+                float r alignas(16)[4];
                 _mm_store_ps(r, wsres);
                 input = r[0] * gain_tweak;
             }

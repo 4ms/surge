@@ -36,7 +36,7 @@ class RotarySpeakerEffect : public Effect
 {
   public:
     lipol_ps_blocksz width alignas(16), mix alignas(16);
-    sst::waveshapers::QuadWaveshaperState wsState alignas(16);
+    sst::waveshapers::QuadWaveshaperState wsState alignas(16){};
 
     RotarySpeakerEffect(SurgeStorage *storage, FxStorage *fxdata, pdata *pd);
     virtual ~RotarySpeakerEffect();
