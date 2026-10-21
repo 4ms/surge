@@ -89,6 +89,11 @@ function(surge_juce_package target product_name)
 endfunction()
 
 function(surge_add_lib_subdirectory libname)
+  # A larger project that builds surge can provide some of these libraries itself
+  if(libname IN_LIST SURGE_LIBS_PROVIDED_BY_PARENT)
+    message(STATUS "Using the parent project's ${libname} instead of libs/${libname}")
+    return()
+  endif()
   add_subdirectory(${SURGE_SOURCE_DIR}/libs/${libname} ${CMAKE_BINARY_DIR}/libs/${libname} EXCLUDE_FROM_ALL)
 endfunction()
 
