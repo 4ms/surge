@@ -48,8 +48,9 @@ void NeuronEffect::init()
 
     os.reset();
 
-    delay1.prepare({storage->dsamplerate * os.getOSRatio(), BLOCK_SIZE, 2});
-    delay2.prepare({storage->dsamplerate * os.getOSRatio(), BLOCK_SIZE, 2});
+    // one channel each: delay1 carries the left signal, delay2 the right
+    delay1.prepare({storage->dsamplerate * os.getOSRatio(), BLOCK_SIZE, 1});
+    delay2.prepare({storage->dsamplerate * os.getOSRatio(), BLOCK_SIZE, 1});
     delay1.setDelay(0.0f);
     delay2.setDelay(0.0f);
 
@@ -96,10 +97,10 @@ void NeuronEffect::process_internal(float *dataL, float *dataR, const int numSam
         delay1.setDelay(delay1Smooth.getNextValue() * lfo_val);
         delay2.setDelay(delay2Smooth.getNextValue() * lfo_val);
         delay1.pushSample(0, dataL[k]);
-        delay2.pushSample(1, dataR[k]);
+        delay2.pushSample(0, dataR[k]);
 
         y1[0] = delay1.popSample(0);
-        y1[1] = delay2.popSample(1);
+        y1[1] = delay2.popSample(0);
     }
 }
 
