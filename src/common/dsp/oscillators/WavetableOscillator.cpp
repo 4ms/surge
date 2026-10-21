@@ -414,9 +414,11 @@ void WavetableOscillator::process_block(float pitch0, float drift, bool stereo, 
     l_hskew.process();
     l_clip.process();
 
+    // The TableID range may have changed in the meantime: a new table, or Morph's extend_range
+    // (nointerp) toggled while tableid sat on the last frame, where convolute would read the
+    // frame after it.
     if ((oscdata->wt.n_tables == 1) ||
-        (tableid >=
-         oscdata->wt.n_tables)) // TableID-range may have changed in the meantime, check it!
+        (tableid > (int)oscdata->wt.n_tables - 2 + nointerp))
     {
         tableipol = 0.f;
         tableid = 0;
