@@ -198,7 +198,7 @@ class DelayLine : public DelayLineBase<SampleType>
     inline void incrementReadPointer(int channel) noexcept final
     {
         auto newReadPtr = this->readPos[(size_t)channel] + totalSize - 1;
-        newReadPtr = newReadPtr > totalSize ? newReadPtr - totalSize : newReadPtr;
+        newReadPtr = newReadPtr >= totalSize ? newReadPtr - totalSize : newReadPtr;
         this->readPos[(size_t)channel] = newReadPtr;
     }
 
@@ -252,7 +252,7 @@ class DelayLine : public DelayLineBase<SampleType>
     inline void incrementWritePointer(int channel) noexcept
     {
         auto newWritePtr = this->writePos[(size_t)channel] + totalSize - 1;
-        newWritePtr = newWritePtr > totalSize ? newWritePtr - totalSize : newWritePtr;
+        newWritePtr = newWritePtr >= totalSize ? newWritePtr - totalSize : newWritePtr;
         this->writePos[(size_t)channel] = newWritePtr;
     }
 
