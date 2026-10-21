@@ -59,7 +59,7 @@ class NimbusEffect : public Effect
         nmb_num_params,
     };
 
-  private:
+  protected:
     lipol_ps_blocksz mix alignas(16);
     float L alignas(16)[BLOCK_SIZE], R alignas(16)[BLOCK_SIZE];
 
@@ -79,10 +79,13 @@ class NimbusEffect : public Effect
 
     virtual int get_ringout_decay() override { return -1; }
 
-    // Only used by rack
-    void setNimbusTrigger(bool b) { nimbusTrigger = b; }
+    // Only used by rack. With latchTrigger, a trigger is held until the granular processor
+    // (which runs at 32 kHz in 8-sample blocks) has consumed it, so short pulses are not lost.
+    void setNimbusTrigger(bool b) { nimbusTrigger = latchTrigger ? (nimbusTrigger || b) : b; }
+    bool latchTrigger{false};
 
-  private:
+  protected:
+    static constexpr int memLen = 118784, ccmLen = 65536 - 128;
     uint8_t *block_mem, *block_ccm;
     clouds::GranularProcessor *processor;
     static constexpr int processor_sr = 32000;

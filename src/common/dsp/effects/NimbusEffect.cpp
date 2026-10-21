@@ -39,8 +39,6 @@
 NimbusEffect::NimbusEffect(SurgeStorage *storage, FxStorage *fxdata, pdata *pd)
     : Effect(storage, fxdata, pd)
 {
-    const int memLen = 118784;
-    const int ccmLen = 65536 - 128;
     block_mem = new uint8_t[memLen]();
     block_ccm = new uint8_t[ccmLen]();
     processor = new clouds::GranularProcessor();
@@ -183,6 +181,8 @@ void NimbusEffect::process(float *dataL, float *dataR)
             parm->capture = nimbusTrigger;
 #else
             parm->trigger = nimbusTrigger; // this is an external granulating source. Skip it
+            if (latchTrigger)
+                nimbusTrigger = false;
 #endif
             parm->gate = parm->freeze; // This is the CV for the freeze button
 
