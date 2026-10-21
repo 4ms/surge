@@ -30,7 +30,7 @@
 #include <string>
 
 // if you hit this on msvc and pass the above, you probably need /Zc:__cplusplus
-static_assert(__cplusplus == 201703L, "Surge requires C++17; please update your build");
+static_assert(__cplusplus >= 201703L, "Surge requires C++17 or later; please update your build");
 
 #if MAC
 
