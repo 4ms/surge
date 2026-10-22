@@ -377,23 +377,39 @@ std::string defaultKeyToString(DefaultKey k)
 ** Functions from the header
 */
 
+// Whether to look for the defaults file again before reading a value. The provider only
+// remembers having read it if the file exists, so a missing file is looked for on every call.
+// That's cheap on a desktop, but elsewhere (e.g. MetaModule) each look is a failed file system
+// call, and values are shown many times per second: there, only read it when the provider is made.
+static bool rereadDefaultsFile(bool potentiallyRead)
+{
+#if MAC || LINUX || WINDOWS
+    return potentiallyRead;
+#else
+    return false;
+#endif
+}
+
 std::string getUserDefaultValue(SurgeStorage *storage, const DefaultKey &key,
                                 const std::string &valueIfMissing, bool potentiallyRead)
 {
-    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing, potentiallyRead);
+    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing,
+                                                              rereadDefaultsFile(potentiallyRead));
 }
 
 int getUserDefaultValue(SurgeStorage *storage, const DefaultKey &key, int valueIfMissing,
                         bool potentiallyRead)
 {
-    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing, potentiallyRead);
+    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing,
+                                                              rereadDefaultsFile(potentiallyRead));
 }
 
 std::pair<int, int> getUserDefaultValue(SurgeStorage *storage, const DefaultKey &key,
                                         const std::pair<int, int> &valueIfMissing,
                                         bool potentiallyRead)
 {
-    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing, potentiallyRead);
+    return storage->userDefaultsProvider->getUserDefaultValue(key, valueIfMissing,
+                                                              rereadDefaultsFile(potentiallyRead));
 }
 
 bool updateUserDefaultValue(SurgeStorage *storage, const DefaultKey &key, const std::string &value)
