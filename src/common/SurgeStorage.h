@@ -1725,7 +1725,7 @@ class alignas(16) SurgeStorage
         }
     }
 #else
-#define runningOnAudioThread() (void *)0;
+#define runningOnAudioThread() ((void)0)
 #endif
     /*
      * These API points are only thread safe on the AUDIO thread.

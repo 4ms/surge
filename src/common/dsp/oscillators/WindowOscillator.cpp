@@ -447,18 +447,21 @@ void WindowOscillator::process_block(float pitch, float drift, bool stereo, bool
         {
             for (int i = 0; i < BLOCK_SIZE_OS; i += 4)
             {
-                _mm_store_ps(&output[i],
-                             _mm_mul_ps(_mm_cvtepi32_ps(*(__m128i *)&IOutputL[i]), scale));
-                _mm_store_ps(&outputR[i],
-                             _mm_mul_ps(_mm_cvtepi32_ps(*(__m128i *)&IOutputR[i]), scale));
+                _mm_store_ps(
+                    &output[i],
+                    _mm_mul_ps(_mm_cvtepi32_ps(_mm_load_si128((__m128i *)&IOutputL[i])), scale));
+                _mm_store_ps(
+                    &outputR[i],
+                    _mm_mul_ps(_mm_cvtepi32_ps(_mm_load_si128((__m128i *)&IOutputR[i])), scale));
             }
         }
         else
         {
             for (int i = 0; i < BLOCK_SIZE_OS; i += 4)
             {
-                _mm_store_ps(&output[i],
-                             _mm_mul_ps(_mm_cvtepi32_ps(*(__m128i *)&IOutputL[i]), scale));
+                _mm_store_ps(
+                    &output[i],
+                    _mm_mul_ps(_mm_cvtepi32_ps(_mm_load_si128((__m128i *)&IOutputL[i])), scale));
             }
         }
     }
