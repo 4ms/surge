@@ -365,7 +365,8 @@ SurgeStorage::SurgeStorage(const SurgeStorage::SurgeStorageConfig &config) : oth
             }
              */
         }
-        else
+        // On a non-desktop platform with no user directory, it's empty: that's not an error
+        else if (!userDataPath.empty())
         {
             reportError(std::string() + "Your user directory '" + userDataPath.u8string() +
                             "' is not a directory.",
