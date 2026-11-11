@@ -1228,8 +1228,9 @@ class alignas(16) SurgeStorage
     {
         std::string suppliedDataPath{""};
         bool createUserDirectory{true};
-        fs::path extraThirdPartyWavetablesPath{};
-        fs::path extraUsersWavetablesPath{};
+        // Each one is scanned, and they're merged (see refreshPatchOrWTListAddDir)
+        std::vector<fs::path> extraThirdPartyWavetablesPaths{};
+        std::vector<fs::path> extraUsersWavetablesPaths{};
         bool scanWavetableAndPatches{true};
 
         static SurgeStorageConfig fromDataPath(const std::string &s)
@@ -1349,11 +1350,12 @@ class alignas(16) SurgeStorage
 
     void refresh_wtlist();
     void refresh_wtlistAddDir(bool userDir, const std::string &subdir);
-    void refresh_wtlistFrom(bool isUser, const fs::path &from, const std::string &subdir);
+    void refresh_wtlistFrom(bool isUser, const std::vector<fs::path> &from,
+                            const std::string &subdir);
     void refresh_patchlist();
     void refreshPatchlistAddDir(bool userDir, std::string subdir);
 
-    void refreshPatchOrWTListAddDir(bool userDir, const fs::path &fromPath, std::string subdir,
+    void refreshPatchOrWTListAddDir(bool userDir, const std::vector<fs::path> &fromPaths, std::string subdir,
                                     std::function<bool(std::string)> filterOp,
                                     std::vector<Patch> &items,
                                     std::vector<PatchCategory> &categories);
@@ -1413,8 +1415,8 @@ class alignas(16) SurgeStorage
     fs::path userWavetablesExportPath;
     fs::path userSkinsPath;
     fs::path userMidiMappingsPath;
-    fs::path extraThirdPartyWavetablesPath; // used by rack
-    fs::path extraUserWavetablesPath;       // used by rack
+    std::vector<fs::path> extraThirdPartyWavetablesPaths; // used by rack
+    std::vector<fs::path> extraUserWavetablesPaths;       // used by rack
 
     std::atomic<bool> userDataPathValid{false};
 

@@ -401,8 +401,8 @@ SurgeStorage::SurgeStorage(const SurgeStorage::SurgeStorageConfig &config) : oth
     userMidiMappingsPath = userDataPath / "MIDI Mappings";
     userModulatorSettingsPath = userDataPath / "Modulator Presets";
     userSkinsPath = userDataPath / "Skins";
-    extraThirdPartyWavetablesPath = config.extraThirdPartyWavetablesPath;
-    extraUserWavetablesPath = config.extraUsersWavetablesPath;
+    extraThirdPartyWavetablesPaths = config.extraThirdPartyWavetablesPaths;
+    extraUserWavetablesPaths = config.extraUsersWavetablesPaths;
 
     if (config.createUserDirectory && userDataPathValid)
     {
@@ -961,22 +961,30 @@ void SurgeStorage::refresh_patchlist()
 void SurgeStorage::refreshPatchlistAddDir(bool userDir, string subdir)
 {
     refreshPatchOrWTListAddDir(
-        userDir, userDir ? userDataPath : datapath, subdir,
+        userDir, {userDir ? userDataPath : datapath}, subdir,
         [](std::string s) -> bool { return _stricmp(s.c_str(), ".fxp") == 0; }, patch_list,
         patch_category);
 }
 
-void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir, const fs::path &initialPatchPath,
+void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir,
+                                              const std::vector<fs::path> &initialPatchPaths,
                                               string subdir,
                                               std::function<bool(std::string)> filterOp,
                                               std::vector<Patch> &items,
                                               std::vector<PatchCategory> &categories)
 {
-    int category = categories.size();
+    int firstCategory = categories.size();
 
     // See issue 4200. In some cases this can throw a filesystem exception so:
     std::vector<PatchCategory> local_categories;
 
+    // The dirs at the same path in each of initialPatchPaths are one category, and a file at the
+    // same path in more than one of them is listed once
+    std::map<std::string, int> nameToCategory;
+    std::set<std::string> filesFound;
+
+    for (auto &initialPatchPath : initialPatchPaths)
+    {
     try
     {
         fs::path patchpath = initialPatchPath;
@@ -985,7 +993,7 @@ void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir, const fs::path &init
 
         if (!fs::is_directory(patchpath))
         {
-            return;
+            continue;
         }
 
         /*
@@ -1025,27 +1033,33 @@ void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir, const fs::path &init
 
         for (auto &p : alldirs)
         {
-            PatchCategory c;
             auto name = std::string("_Unsorted");
             auto pn = path_to_string(p);
             if (pn.size() > patchpathSubstrLength)
                 name = pn.substr(patchpathSubstrLength);
 
-            c.name = name;
-            c.internalid = category;
-            c.isFactory = !userDir;
+            auto [it, isNew] = nameToCategory.emplace(name, local_categories.size());
+            if (isNew)
+            {
+                PatchCategory c;
+                c.name = name;
+                c.internalid = firstCategory + it->second;
+                c.isFactory = !userDir;
+                c.numberOfPatchesInCategory = 0;
+                local_categories.push_back(c);
+            }
+            auto &c = local_categories[it->second];
 
-            c.numberOfPatchesInCategory = 0;
             for (auto &f : fs::directory_iterator(p))
             {
                 std::string xtn = path_to_string(f.path().extension());
-                if (filterOp(xtn))
+                auto filename = path_to_string(f.path().filename());
+                if (filterOp(xtn) && filesFound.insert(name + "/" + filename).second)
                 {
                     Patch e;
-                    e.category = category;
+                    e.category = c.internalid;
                     e.path = f.path();
-                    e.name = path_to_string(f.path().filename());
-                    e.name = e.name.substr(0, e.name.size() - xtn.length());
+                    e.name = filename.substr(0, filename.size() - xtn.length());
                     items.push_back(e);
 
                     c.numberOfPatchesInCategory++;
@@ -1053,8 +1067,6 @@ void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir, const fs::path &init
             }
 
             c.numberOfPatchesInCategoryAndChildren = c.numberOfPatchesInCategory;
-            local_categories.push_back(c);
-            category++;
         }
     }
     catch (const fs::filesystem_error &e)
@@ -1062,6 +1074,7 @@ void SurgeStorage::refreshPatchOrWTListAddDir(bool userDir, const fs::path &init
         std::ostringstream oss;
         oss << "Experienced filesystem error when building patches. " << e.what();
         reportError(oss.str(), "Filesystem Error");
+    }
     }
 
     /*
@@ -1151,22 +1164,24 @@ void SurgeStorage::refresh_wtlist()
     refresh_wtlistAddDir(false, "wavetables");
 
     firstThirdPartyWTCategory = wt_category.size();
-    if (extraThirdPartyWavetablesPath.empty() ||
-        !fs::is_directory(extraThirdPartyWavetablesPath / "wavetables_3rdparty"))
+    std::vector<fs::path> thirdPartyPaths;
+    for (auto &p : extraThirdPartyWavetablesPaths)
+    {
+        if (fs::is_directory(p / "wavetables_3rdparty"))
+            thirdPartyPaths.push_back(p);
+    }
+    if (thirdPartyPaths.empty())
     {
         refresh_wtlistAddDir(false, "wavetables_3rdparty");
     }
     else
     {
-        refresh_wtlistFrom(false, extraThirdPartyWavetablesPath, "wavetables_3rdparty");
+        refresh_wtlistFrom(false, thirdPartyPaths, "wavetables_3rdparty");
     }
     firstUserWTCategory = wt_category.size();
     refresh_wtlistAddDir(true, "Wavetables");
 
-    if (!extraUserWavetablesPath.empty())
-    {
-        refresh_wtlistFrom(true, extraUserWavetablesPath, "");
-    }
+    refresh_wtlistFrom(true, extraUserWavetablesPaths, "");
 
     wtCategoryOrdering = std::vector<int>(wt_category.size());
     std::iota(wtCategoryOrdering.begin(), wtCategoryOrdering.end(), 0);
@@ -1257,10 +1272,11 @@ void SurgeStorage::refresh_wtlist()
 
 void SurgeStorage::refresh_wtlistAddDir(bool userDir, const std::string &subdir)
 {
-    refresh_wtlistFrom(userDir, userDir ? userDataPath : datapath, subdir);
+    refresh_wtlistFrom(userDir, {userDir ? userDataPath : datapath}, subdir);
 }
 
-void SurgeStorage::refresh_wtlistFrom(bool isUser, const fs::path &p, const std::string &subdir)
+void SurgeStorage::refresh_wtlistFrom(bool isUser, const std::vector<fs::path> &p,
+                                      const std::string &subdir)
 {
     std::vector<std::string> supportedTableFileTypes;
     supportedTableFileTypes.push_back(".wt");
